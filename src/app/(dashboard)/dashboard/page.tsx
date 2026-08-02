@@ -154,7 +154,7 @@ export default function ResellerDashboardPage() {
               </div>
               <div>
                 <h2 className="text-base font-bold text-white">
-                  Plan Narkup & Custom Pricing
+                  Plan Markup & Custom Pricing
                 </h2>
                 <p className="text-xs text-slate-400">
                   Set customer retail prices over wholesale base rates.
@@ -164,14 +164,16 @@ export default function ResellerDashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
+            <table className="w-full text-left text-sm text-slate-300 min-w-[650]">
               <thead className="bg-slate-950/50 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
                 <tr>
-                  <th className="px-6 py-4">Network / Plan</th>
-                  <th className="px-6 py-4">Validity</th>
-                  <th className="px-6 py-4">Wholesale Base</th>
-                  <th className="px-6 py-4">Your Retail Price (₦)</th>
-                  <th className="px-6 py-4 text-right">Profit / Sale</th>
+                  <th className="px-6 sm:px-6 py-4">Network / Plan</th>
+                  <th className="px-6 sm:px-6 py-4">Validity</th>
+                  <th className="px-6 sm:px-6 py-4">Wholesale Base</th>
+                  <th className="px-6 sm:px-6 py-4">Your Retail Price (₦)</th>
+                  <th className="px-6 sm:px-6 py-4 text-right">
+                    Profit / Sale
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -197,8 +199,8 @@ export default function ResellerDashboardPage() {
                         ₦{plan.basePrice}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="relative max-w-[140px]">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">
+                        <div className="relative w-32">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs pointer-events-none">
                             ₦
                           </span>
                           <input
@@ -211,11 +213,17 @@ export default function ResellerDashboardPage() {
                           />
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right font-bold">
+                      <td className="px-4 sm:px-6 py-4 text-right whitespace-nowrap">
                         <span
-                          className={`px-2.5 py-1 rounded-lg text-xs ${profitMargin >= 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}
+                          className={`inline-flex items-center gap-0.5 px-3 py-1 rounded-lg text-xs font-bold ${
+                            profitMargin >= 0
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                          }`}
                         >
-                          +₦{profitMargin}
+                          {profitMargin >= 0
+                            ? `+₦${profitMargin}`
+                            : `-₦${Math.abs(profitMargin)}`}
                         </span>
                       </td>
                     </motion.tr>
