@@ -79,7 +79,7 @@ export default function ResellerDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       {/* Dynamic Header */}
       <DashboardNavbar storeName="Apex Telecom" walletBalance={48500} />
 
@@ -87,10 +87,10 @@ export default function ResellerDashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
               Reseller Control Center
             </h1>
-            <p className="text-slate-400 text-sm mt-1">
+            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
               Configure markup prices, monitor active customers and trace profit
               margins.
             </p>
@@ -120,43 +120,43 @@ export default function ResellerDashboardPage() {
             value="₦1,240,500"
             change="+14.2%"
             icon={DollarSign}
-            iconColor="text-emerald-400"
+            iconColor="text-emerald-600 dark:text-emerald-400"
           />
           <StatsCard
             title="Net Profit Margin"
             value="₦184,200"
             change="+18.5%"
             icon={TrendingUp}
-            iconColor="text-blue-400"
+            iconColor="text-blue-600 dark:text-blue-400"
           />
           <StatsCard
             title="Total Transactions"
             value="3,842"
             change="+8.1%"
             icon={ShoppingBag}
-            iconColor="text-indigo-400"
+            iconColor="text-indigo-600 dark:text-indigo-400"
           />
           <StatsCard
             title="Active Customers"
             value="612"
             change="+12"
             icon={Users}
-            iconColor="text-amber-400"
+            iconColor="text-amber-600 dark:text-amber-400"
           />
         </div>
 
         {/* Markup Price Configuration Table */}
-        <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md overflow-hidden">
-          <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div className="rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 backdrop-blur-md overflow-hidden shadow-sm dark:shadow-none transition-colors">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+              <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <Sliders className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-white">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
                   Plan Markup & Custom Pricing
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Set customer retail prices over wholesale base rates.
                 </p>
               </div>
@@ -164,8 +164,8 @@ export default function ResellerDashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300 min-w-[650]">
-              <thead className="bg-slate-950/50 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
+            <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300 min-w-[650]">
+              <thead className="bg-slate-100 dark:bg-slate-950/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="px-6 sm:px-6 py-4">Network / Plan</th>
                   <th className="px-6 sm:px-6 py-4">Validity</th>
@@ -176,7 +176,7 @@ export default function ResellerDashboardPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                 {INITIAL_BASE_PLANS.map((plan) => {
                   const currentRetail = markups[plan.id] || plan.basePrice;
                   const profitMargin = currentRetail - plan.basePrice;
@@ -184,23 +184,23 @@ export default function ResellerDashboardPage() {
                   return (
                     <motion.tr
                       key={plan.id}
-                      className="hover:bg-slate-800/30 transition-colors"
+                      className="hover:bg-slate-100/60 dark:hover:bg-slate-800/30 transition-colors"
                     >
-                      <td className="px-6 py-4 font-medium text-white flex items-center gap-3">
-                        <span className="px-2 py-1 text-[10px] font-black rounded-md bg-slate-800 text-blue-400 border border-slate-700">
+                      <td className="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-3">
+                        <span className="px-2 py-1 text-[10px] font-black rounded-md bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 border border-slate-300 dark:border-slate-700">
                           {plan.network}
                         </span>
                         {plan.name}
                       </td>
-                      <td className="px-6 py-4 text-slate-400">
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                         {plan.validity}
                       </td>
-                      <td className="px-6 py-4 text-slate-400">
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                         ₦{plan.basePrice}
                       </td>
                       <td className="px-6 py-4">
                         <div className="relative w-32">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs pointer-events-none">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-400 font-bold text-xs pointer-events-none">
                             ₦
                           </span>
                           <input
@@ -209,7 +209,7 @@ export default function ResellerDashboardPage() {
                             onChange={(e) =>
                               handlePriceChange(plan.id, Number(e.target.value))
                             }
-                            className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-7 pr-3 py-1.5 text-white font-bold text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl pl-7 pr-3 py-1.5 text-slate-900 dark:text-white font-bold text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
                           />
                         </div>
                       </td>
@@ -217,8 +217,8 @@ export default function ResellerDashboardPage() {
                         <span
                           className={`inline-flex items-center gap-0.5 px-3 py-1 rounded-lg text-xs font-bold ${
                             profitMargin >= 0
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
                           }`}
                         >
                           {profitMargin >= 0

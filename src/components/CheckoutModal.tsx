@@ -57,17 +57,17 @@ export function CheckoutModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md transition-colors">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-2xl overflow-hidden"
+          className="relative w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl overflow-hidden transition-colors"
         >
           {/* Close Button */}
           <button
             onClick={handleResetAndClose}
-            className="absolute top-5 right-5 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+            className="absolute top-5 right-5 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -75,32 +75,34 @@ export function CheckoutModal({
           {isSuccess ? (
             // Success state
             <div className="text-center py-6">
-              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-black text-white">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">
                 Transaction Successful!
               </h3>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 max-w-xs mx-auto">
                 {mode === "BUY_PLAN"
-                  ? `Data plan successfuly dispatched to ${phone} via ${selectedPlan?.network}.`
+                  ? `Data plan successfully dispatched to ${phone} via ${selectedPlan?.network}.`
                   : `Your wallet topup of ₦${Number(amount).toLocaleString()} was confirmed.`}
               </p>
 
-              <div className="mt-6 p-4 rounded-xl bg-slate-950 border border-slate-800 text-left text-xs space-y-2">
-                <div className="flex justify-between text-slate-400">
+              <div className="mt-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-left text-xs space-y-2">
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
                   <span>Merchant:</span>
-                  <span className="font-bold text-white">{storeName}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {storeName}
+                  </span>
                 </div>
-                <div className="flex justify-between text-slate-400">
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
                   <span>Reference ID:</span>
-                  <span className="font-mono text-blue-400">
+                  <span className="font-mono text-blue-600 dark:text-blue-400">
                     TXN-{Math.floor(100000 + Math.random() * 900000)}
                   </span>
                 </div>
-                <div className="flex justify-between text-slate-400">
+                <div className="flex justify-between text-slate-600 dark:text-slate-400">
                   <span>Status:</span>
-                  <span className="font-bold text-emerald-400 uppercase">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 uppercase">
                     Instant Delivered
                   </span>
                 </div>
@@ -117,7 +119,7 @@ export function CheckoutModal({
             // Active Form State
             <div>
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-400">
+                <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                   {mode === "BUY_PLAN" ? (
                     <Smartphone className="w-6 h-6" />
                   ) : (
@@ -125,30 +127,32 @@ export function CheckoutModal({
                   )}
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">
                     {mode === "BUY_PLAN"
                       ? "Instant Data Dispatch"
                       : "Fund Customer Wallet"}
                   </h3>
-                  <p className="text-xs text-slate-400">{storeName} Gateway</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {storeName} Gateway
+                  </p>
                 </div>
               </div>
 
               <form onSubmit={handleProcessTransaction} className="space-y-4">
                 {mode === "BUY_PLAN" && selectedPlan && (
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-bold text-blue-400">
+                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
                         {selectedPlan.network}
                       </span>
-                      <span className="text-xs font-semibold text-slate-400">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                         {selectedPlan.validity}
                       </span>
                     </div>
-                    <p className="text-base font-bold text-white">
+                    <p className="text-base font-bold text-slate-900 dark:text-white">
                       {selectedPlan.name}
                     </p>
-                    <p className="text-xl font-extrabold text-emerald-400 mt-2">
+                    <p className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">
                       ₦{selectedPlan.basePrice}
                     </p>
                   </div>
@@ -156,7 +160,7 @@ export function CheckoutModal({
 
                 {mode === "BUY_PLAN" ? (
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                       Target Phone Number
                     </label>
                     <input
@@ -165,12 +169,12 @@ export function CheckoutModal({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="e.g 08012345678"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold text-sm focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold text-sm focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
                     />
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                       Top-Up Amount (₦)
                     </label>
                     <input
@@ -179,12 +183,12 @@ export function CheckoutModal({
                       min="100"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold text-sm focus:border-blue-500 outline-none transition-all"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-white font-bold text-sm focus:border-blue-500 outline-none transition-all"
                     />
                   </div>
                 )}
 
-                <div className="pt-2 ">
+                <div className="pt-2">
                   <button
                     type="submit"
                     disabled={isProcessing}
@@ -209,7 +213,7 @@ export function CheckoutModal({
                 </div>
 
                 <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 pt-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>256-Bit Encrypted VTU Settlement</span>
                 </div>
               </form>
