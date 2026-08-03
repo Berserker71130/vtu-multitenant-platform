@@ -11,6 +11,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { CheckoutModal, ModalMode } from "@/components/CheckoutModal";
 
 // Mock plans for testing
 const MOCK_PLANS: BasePlan[] = [
@@ -69,9 +70,26 @@ export default function StorefrontPage({
   const [selectedNetwork, setSelectedNetwork] =
     useState<NetworkProvider>("MTN");
 
+  // Modal state management
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<ModalMode>("BUY_PLAN");
+  const [activePlan, setActivePlan] = useState<BasePlan | null>(null);
+
   const filteredPlans = MOCK_PLANS.filter(
     (plan) => plan.network === selectedNetwork,
   );
+
+  const handleOpenBuyModal = (plan: BasePlan) => {
+    setActivePlan(plan);
+    setModalMode("BUY_PLAN");
+    setIsModalOpen(true);
+  };
+
+  const handleOpenTopUpModal = () => {
+    setActivePlan(null);
+    setModalMode("TOP_UP");
+    setIsModalOpen(true);
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -96,7 +114,10 @@ export default function StorefrontPage({
             <p className="text-xs text-slate-400">Customer Wallet</p>
             <p className="text-sm font-bold text-white">₦0.00</p>
           </div>
-          <button className="ml-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all">
+          <button
+            onClick={handleOpenTopUpModal}
+            className="ml-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all"
+          >
             Fund Wallet
           </button>
         </div>
@@ -159,7 +180,10 @@ export default function StorefrontPage({
                 </p>
               </div>
 
-              <button className="mt-6 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-blue-600 hover:text-white text-slate-200 font-semibold text-sm transition-all flex items-center justify-center gap-2">
+              <button
+                onClick={() => handleOpenBuyModal(plan)}
+                className="mt-6 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-blue-600 hover:text-white text-slate-200 font-semibold text-sm transition-all flex items-center justify-center gap-2"
+              >
                 Buy Now
                 <ArrowRight className="w-4 h-4" />
               </button>
@@ -167,6 +191,15 @@ export default function StorefrontPage({
           ))}
         </div>
       </section>
+
+      {/* Embedded Transaction Modal */}
+      <CheckoutModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        mode={modalMode}
+        selectedPlan={activePlan}
+        storeName={tenant?.name || storeSlug}
+      />
     </div>
   );
 }
