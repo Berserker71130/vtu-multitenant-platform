@@ -14,6 +14,10 @@ import {
   Sparkles,
   Store,
   Wifi,
+  LogIn,
+  UserPlus,
+  Zap,
+  CheckCircle2,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -62,18 +66,27 @@ export default function RootLandingPage() {
             <ThemeToggle />
 
             <Link
-              href="/dashboard"
+              href="/login"
               className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold transition-all flex items-center gap-2 shadow-sm dark:shadow-none"
             >
-              <LayoutDashboard className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="hidden sm:inline">Reseller Console</span>
+              <LogIn className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Log In</span>
             </Link>
+
             <Link
-              href="apex-telecom"
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+              href="/register"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
             >
-              <Store className="w-4 h-4" />
-              Demo Storefront
+              <UserPlus className="w-4 h-4" />
+              <span>Get Started</span>
+            </Link>
+
+            <Link
+              href="/dashboard"
+              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold transition-all shadow-sm dark:shadow-none"
+            >
+              <LayoutDashboard className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>Console</span>
             </Link>
           </div>
         </div>
@@ -104,6 +117,23 @@ export default function RootLandingPage() {
             markups on base data/airtime plans, and process instant customer
             transactions automatically.
           </p>
+
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <Link
+              href="/register"
+              className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-500/25 transition-all flex items-center gap-2"
+            >
+              <span>Create Store Account</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <Link
+              href="/login"
+              className="px-8 py-3.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-bold text-sm transition-all shadow-sm"
+            >
+              <span>Log In</span>
+            </Link>
+          </div>
         </motion.div>
 
         {/* Live storefront URL Test Drive Generator */}
@@ -111,7 +141,7 @@ export default function RootLandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-10 max-w-2xl mx-auto p-2 sm:p-2.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl dark:shadow-2xl backdrop-blur-md transition-colors"
+          className="mt-12 max-w-2xl mx-auto p-2 sm:p-2.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl dark:shadow-2xl backdrop-blur-md transition-colors"
         >
           <form
             onSubmit={handleLaunchStorePreview}
@@ -120,7 +150,7 @@ export default function RootLandingPage() {
             <div className="flex items-center gap-2 px-3 py-2 w-full bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-sm text-slate-400">
               <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
               <span className="text-slate-400 dark:text-slate-500 hidden sm:inline">
-                vtuplatform.com
+                vtuplatform.com/
               </span>
               <input
                 type="text"
@@ -209,8 +239,8 @@ export default function RootLandingPage() {
               </p>
 
               <Link
-                href="/dashboard"
-                className="mt-6 w-full py-3 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                href="/register"
+                className="mt-6 w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
               >
                 Configure Pricing in Reseller Console{" "}
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -313,7 +343,7 @@ export default function RootLandingPage() {
           </Link>
 
           <Link
-            href="/dashboard"
+            href="/login"
             className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition-all flex items-center justify-between group shadow-sm dark:shadow-none"
           >
             <div className="flex items-center gap-3">
@@ -327,6 +357,34 @@ export default function RootLandingPage() {
             </div>
             <ArrowRight className="w-4 h-4 text-slate-400 dark:text-slate-600 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
           </Link>
+        </div>
+      </section>
+
+      {/* Trust & Guarantee Banner */}
+      <section className="max-w-7xl mx-auto px-6 py-8">
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-900/20 via-indigo-900/20 to-slate-900/20 border border-blue-500/20 backdrop-blur-xl flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
+                Sub-Second Automated Fulfillment
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Direct integration with active VTU network gateways.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6 text-xs text-slate-600 dark:text-slate-400 font-medium">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" /> 99.9% Uptime
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Encrypted
+              Webhooks
+            </span>
+          </div>
         </div>
       </section>
 

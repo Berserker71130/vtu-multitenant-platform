@@ -2,6 +2,7 @@
 
 import { DashboardNavbar } from "@/components/DashboardNavbar";
 import { StatsCard } from "@/components/StatsCard";
+import { useTenant } from "@/context/TenantContext";
 import { BasePlan } from "@/types";
 import { motion } from "framer-motion";
 import {
@@ -13,7 +14,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Initial Base Plans From Master VTU Provider
 const INITIAL_BASE_PLANS: BasePlan[] = [
@@ -60,6 +61,8 @@ const INITIAL_BASE_PLANS: BasePlan[] = [
 ];
 
 export default function ResellerDashboardPage() {
+  const { tenant, walletBalance, transactions } = useTenant();
+
   const [markups, setMarkups] = useState<Record<string, number>>({
     "bp-1": 270,
     "bp-2": 520,
@@ -69,19 +72,45 @@ export default function ResellerDashboardPage() {
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Load persistent markups on initial load
+  useEffect(() => {
+    if (typeof window !== "undefined" && tenant?.slug) {
+      const savedMarkups = localStorage.getItem(`vtu_markups_${tenant.slug}`);
+      if (savedMarkups) {
+        setMarkups(JSON.parse(savedMarkups));
+      }
+    }
+  }, [tenant?.slug]);
+
   const handlePriceChange = (planId: string, newPrice: number) => {
     setMarkups((prev) => ({ ...prev, [planId]: newPrice }));
   };
 
   const handleSaveMarkups = () => {
+    if (typeof window !== "undefined" && tenant?.slug) {
+      localStorage.setItem(
+        `vtu_markups_${tenant.slug}`,
+        JSON.stringify(markups),
+      );
+    }
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
+  // Calculate live analytics from actual transactions context
+  const totalDebitSpend = transactions
+    .filter((t) => t.type === "debit" && t.status === "success")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalTxnCount = transactions.length;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-      {/* Dynamic Header */}
-      <DashboardNavbar storeName="Apex Telecom" walletBalance={48500} />
+      {/* Dynamic Navbar tied directly to useTenant Context */}
+      <DashboardNavbar
+        storeName={tenant?.name || "Apex Telecom"}
+        walletBalance={walletBalance}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Welcome Section */}
@@ -117,21 +146,21 @@ export default function ResellerDashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatsCard
             title="Total Revenue"
-            value="₦1,240,500"
+            value={`₦${(1240500 + totalDebitSpend).toLocaleString()}`}
             change="+14.2%"
             icon={DollarSign}
             iconColor="text-emerald-600 dark:text-emerald-400"
           />
           <StatsCard
             title="Net Profit Margin"
-            value="₦184,200"
+            value={`₦${(184200 + Math.floor(totalDebitSpend * 0.15)).toLocaleString()}`}
             change="+18.5%"
             icon={TrendingUp}
             iconColor="text-blue-600 dark:text-blue-400"
           />
           <StatsCard
             title="Total Transactions"
-            value="3,842"
+            value={`${(3842 + totalTxnCount).toLocaleString()}`}
             change="+8.1%"
             icon={ShoppingBag}
             iconColor="text-indigo-600 dark:text-indigo-400"
@@ -164,21 +193,19 @@ export default function ResellerDashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300 min-w-[650]">
+            <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300 min-w-[650px]">
               <thead className="bg-slate-100 dark:bg-slate-950/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <th className="px-6 sm:px-6 py-4">Network / Plan</th>
-                  <th className="px-6 sm:px-6 py-4">Validity</th>
-                  <th className="px-6 sm:px-6 py-4">Wholesale Base</th>
-                  <th className="px-6 sm:px-6 py-4">Your Retail Price (₦)</th>
-                  <th className="px-6 sm:px-6 py-4 text-right">
-                    Profit / Sale
-                  </th>
+                  <th className="px-6 py-4">Network / Plan</th>
+                  <th className="px-6 py-4">Validity</th>
+                  <th className="px-6 py-4">Wholesale Base</th>
+                  <th className="px-6 py-4">Your Retail Price (₦)</th>
+                  <th className="px-6 py-4 text-right">Profit / Sale</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
                 {INITIAL_BASE_PLANS.map((plan) => {
-                  const currentRetail = markups[plan.id] || plan.basePrice;
+                  const currentRetail = markups[plan.id] ?? plan.basePrice;
                   const profitMargin = currentRetail - plan.basePrice;
 
                   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TenantProvider } from "@/context/TentantContext";
+import { TenantProvider } from "@/context/TenantContext";
 
 export default function StoreFrontLayout({
   children,

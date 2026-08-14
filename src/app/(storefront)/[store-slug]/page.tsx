@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, use } from "react";
-import { useTenant } from "@/context/TentantContext";
+import { useTenant } from "@/context/TenantContext";
 import { BasePlan, NetworkProvider } from "@/types";
 import {
   Smartphone,
@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 import { CheckoutModal, ModalMode } from "@/components/CheckoutModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-// Mock plans for testing
+// Base plans (Base costs before reseller markup)
 const MOCK_PLANS: BasePlan[] = [
   {
     id: "1",
@@ -63,11 +63,11 @@ export default function StorefrontPage({
 }: {
   params: Promise<{ "store-slug": string }>;
 }) {
-  // Unwrap the params promise using React.use()
+  // Unwrap params safely using React.use()
   const resolvedParams = use(params);
   const storeSlug = resolvedParams["store-slug"];
 
-  const { tenant } = useTenant();
+  const { tenant, walletBalance } = useTenant();
   const [selectedNetwork, setSelectedNetwork] =
     useState<NetworkProvider>("MTN");
 
@@ -76,12 +76,23 @@ export default function StorefrontPage({
   const [modalMode, setModalMode] = useState<ModalMode>("BUY_PLAN");
   const [activePlan, setActivePlan] = useState<BasePlan | null>(null);
 
+  const markup = tenant?.pricingMarkup ?? 5; // Default 5% markup if unspecified
+
+  // Helper to calculate retail price based on tenant markup
+  const calculateRetailPrice = (basePrice: number) => {
+    return Math.round(basePrice * (1 + markup / 100));
+  };
+
   const filteredPlans = MOCK_PLANS.filter(
     (plan) => plan.network === selectedNetwork,
   );
 
   const handleOpenBuyModal = (plan: BasePlan) => {
-    setActivePlan(plan);
+    const planWithRetailPrice: BasePlan = {
+      ...plan,
+      basePrice: calculateRetailPrice(plan.basePrice),
+    };
+    setActivePlan(planWithRetailPrice);
     setModalMode("BUY_PLAN");
     setIsModalOpen(true);
   };
@@ -104,7 +115,7 @@ export default function StorefrontPage({
             {tenant?.name || storeSlug}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
-            {tenant?.branding.tagline ||
+            {tenant?.branding?.tagline ||
               "Fast & Automated Airtime and Data VTU"}
           </p>
         </div>
@@ -116,7 +127,7 @@ export default function StorefrontPage({
               Customer Wallet
             </p>
             <p className="text-sm font-bold text-slate-900 dark:text-white">
-              ₦0.00
+              ₦{walletBalance ? walletBalance.toLocaleString() : "0"}
             </p>
           </div>
           <button
@@ -149,7 +160,11 @@ export default function StorefrontPage({
               >
                 <div className="flex items-center gap-3">
                   <Wifi
-                    className={`w-5 h-5 ${selectedNetwork === network ? "text-blue-600 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}
+                    className={`w-5 h-5 ${
+                      selectedNetwork === network
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-slate-400 dark:text-slate-500"
+                    }`}
                   />
                   <span className="font-bold">{network}</span>
                 </div>
@@ -168,36 +183,47 @@ export default function StorefrontPage({
           2. Select Plan
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {filteredPlans.map((plan) => (
-            <motion.div
-              key={plan.id}
-              whileHover={{ y: -4 }}
-              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between shadow-sm dark:shadow-none"
-            >
-              <div>
-                <div className="flex justify-between items-start mb-3">
-                  <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                    {plan.validity}
-                  </span>
-                  <Smartphone className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                  {plan.name}
-                </h3>
-                <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400 mt-2">
-                  ₦{plan.basePrice}
-                </p>
-              </div>
+          {filteredPlans.map((plan) => {
+            const retailPrice = calculateRetailPrice(plan.basePrice);
 
-              <button
-                onClick={() => handleOpenBuyModal(plan)}
-                className="mt-6 w-full py-2.5 rounded-xl bg-slate-100 hover:bg-blue-600 dark:bg-slate-800 dark:hover:bg-blue-600 text-slate-800 hover:text-white dark:text-slate-200 dark:hover:text-white font-semibold text-sm transition-all flex items-center justify-center gap-2"
+            return (
+              <motion.div
+                key={plan.id}
+                whileHover={{ y: -4 }}
+                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between shadow-sm dark:shadow-none"
               >
-                Buy Now
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </motion.div>
-          ))}
+                <div>
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      {plan.validity}
+                    </span>
+                    <Smartphone className="w-5 h-5 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                    {plan.name}
+                  </h3>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">
+                      ₦{retailPrice.toLocaleString()}
+                    </p>
+                    {markup > 0 && (
+                      <span className="text-xs text-slate-400 line-through">
+                        ₦{Math.round(retailPrice * 1.05).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleOpenBuyModal(plan)}
+                  className="mt-6 w-full py-2.5 rounded-xl bg-slate-100 hover:bg-blue-600 dark:bg-slate-800 dark:hover:bg-blue-600 text-slate-800 hover:text-white dark:text-slate-200 dark:hover:text-white font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                >
+                  Buy Now
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </motion.div>
+            );
+          })}
         </div>
       </section>
 

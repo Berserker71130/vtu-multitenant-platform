@@ -15,6 +15,7 @@ export interface TenantStore {
   branding: StoreBranding;
   customDomain?: string;
   status: "active" | "suspended" | "pending";
+  pricingMarkup?: number;
   createdAt: string;
 }
 
@@ -24,10 +25,27 @@ export type UserRole = "super_admin" | "reseller" | "customer";
 export interface User {
   id: string;
   email: string;
-  fullName: string;
-  role: UserRole;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  role?: UserRole;
   tenantId?: string;
-  createdAt: string;
+  createdAt?: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password?: string;
+  firstName: string;
+  lastName: string;
+  companyName: string;
+}
+
+export interface AuthResponseData {
+  id: string;
+  email: string;
+  api_key: string;
 }
 
 // 3. BASE & CUSTOM VTU PLAN TYPES
@@ -52,6 +70,12 @@ export interface ResellerPlanMarkup {
   customPrice: number;
   marginProfit: number;
   isEnabled: boolean;
+}
+
+// Display interface for Storefront (Base plan + reseller markup applied)
+export interface RetailPlan extends BasePlan {
+  sellingPrice: number;
+  marginProfit: number;
 }
 
 // 4. WALLET TRANSACTION TYPES
@@ -92,4 +116,19 @@ export interface ResellerAnalytics {
   totalCustomers: number;
   walletBalance: number;
   recentTransactions: Transaction[];
+}
+
+// 6. API REQUEST & RESPONSE PAYLOADS
+export interface PurchasePayload {
+  network: NetworkProvider;
+  planId: string;
+  phoneNumber: string;
+  amount: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string; // Made optional to prevent type errors on endpoints without a message field
+  error?: string;
+  data: T;
 }

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { BasePlan } from "@/types";
+import { useTenant } from "@/context/TenantContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  AlertCircle,
   ArrowRight,
   CheckCircle2,
   Loader2,
@@ -30,27 +32,55 @@ export function CheckoutModal({
   selectedPlan,
   storeName,
 }: CheckoutModalProps) {
+  const { walletBalance, fundWallet, deductWallet } = useTenant();
+
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("2000");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   if (!isOpen) return null;
 
   const handleProcessTransaction = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
     setIsProcessing(true);
 
-    // Simulate sub-second VTU dispatch / gateway execution
     setTimeout(() => {
+      if (mode === "BUY_PLAN" && selectedPlan) {
+        const cost = selectedPlan.basePrice;
+        const success = deductWallet(
+          cost,
+          `${selectedPlan.network} ${selectedPlan.name} -> ${phone}`,
+        );
+
+        if (!success) {
+          setIsProcessing(false);
+          setErrorMessage(
+            `Insufficient wallet balance (₦${walletBalance.toLocaleString()}). Please top up first.`,
+          );
+          return;
+        }
+      } else if (mode === "TOP_UP") {
+        const topUpAmount = Number(amount);
+        if (isNaN(topUpAmount) || topUpAmount <= 0) {
+          setIsProcessing(false);
+          setErrorMessage("Please enter a valid top-up amount.");
+          return;
+        }
+        fundWallet(topUpAmount, `Wallet Top-Up via ${storeName}`);
+      }
+
       setIsProcessing(false);
       setIsSuccess(true);
-    }, 1500);
+    }, 1000);
   };
 
   const handleResetAndClose = () => {
     setIsSuccess(false);
     setIsProcessing(false);
+    setErrorMessage("");
     setPhone("");
     onClose();
   };
@@ -73,7 +103,7 @@ export function CheckoutModal({
           </button>
 
           {isSuccess ? (
-            // Success state
+            /* Success state */
             <div className="text-center py-6">
               <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="w-10 h-10" />
@@ -116,7 +146,7 @@ export function CheckoutModal({
               </button>
             </div>
           ) : (
-            // Active Form State
+            /* Active Form State */
             <div>
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -137,6 +167,13 @@ export function CheckoutModal({
                   </p>
                 </div>
               </div>
+
+              {errorMessage && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
 
               <form onSubmit={handleProcessTransaction} className="space-y-4">
                 {mode === "BUY_PLAN" && selectedPlan && (
