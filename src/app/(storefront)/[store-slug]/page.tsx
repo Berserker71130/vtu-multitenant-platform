@@ -3,18 +3,43 @@
 import React, { useState, use } from "react";
 import { useTenant } from "@/context/TenantContext";
 import { BasePlan, NetworkProvider } from "@/types";
-import {
-  Smartphone,
-  Wifi,
-  Wallet,
-  ArrowRight,
-  CheckCircle2,
-} from "lucide-react";
+import { Smartphone, Wallet, ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { CheckoutModal, ModalMode } from "@/components/CheckoutModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-// Base plans (Base costs before reseller markup)
+// Helper component for styled network badges & colors
+const NetworkLogo = ({ network }: { network: NetworkProvider }) => {
+  switch (network) {
+    case "MTN":
+      return (
+        <div className="w-8 h-8 rounded-full bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+          MTN
+        </div>
+      );
+    case "AIRTEL":
+      return (
+        <div className="w-8 h-8 rounded-full bg-red-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+          airtel
+        </div>
+      );
+    case "GLO":
+      return (
+        <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+          glo
+        </div>
+      );
+    case "9MOBILE":
+      return (
+        <div className="w-8 h-8 rounded-full bg-teal-700 text-lime-400 font-black text-[10px] flex items-center justify-center shrink-0 shadow-sm">
+          9mob
+        </div>
+      );
+    default:
+      return null;
+  }
+};
+
 const MOCK_PLANS: BasePlan[] = [
   {
     id: "1",
@@ -63,7 +88,6 @@ export default function StorefrontPage({
 }: {
   params: Promise<{ "store-slug": string }>;
 }) {
-  // Unwrap params safely using React.use()
   const resolvedParams = use(params);
   const storeSlug = resolvedParams["store-slug"];
 
@@ -71,14 +95,12 @@ export default function StorefrontPage({
   const [selectedNetwork, setSelectedNetwork] =
     useState<NetworkProvider>("MTN");
 
-  // Modal state management
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>("BUY_PLAN");
   const [activePlan, setActivePlan] = useState<BasePlan | null>(null);
 
-  const markup = tenant?.pricingMarkup ?? 5; // Default 5% markup if unspecified
+  const markup = tenant?.pricingMarkup ?? 5;
 
-  // Helper to calculate retail price based on tenant markup
   const calculateRetailPrice = (basePrice: number) => {
     return Math.round(basePrice * (1 + markup / 100));
   };
@@ -104,72 +126,72 @@ export default function StorefrontPage({
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Hero Section with Dynamic Branding */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 backdrop-blur-md mb-8 shadow-sm dark:shadow-none transition-colors duration-300">
+    <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
+      {/* Hero Section */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 backdrop-blur-md mb-6 sm:mb-8 shadow-sm dark:shadow-none transition-colors duration-300">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
             Branded Storefront
           </span>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
             {tenant?.name || storeSlug}
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
+          <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1">
             {tenant?.branding?.tagline ||
               "Fast & Automated Airtime and Data VTU"}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-          <Wallet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Customer Wallet
-            </p>
-            <p className="text-sm font-bold text-slate-900 dark:text-white">
-              ₦{walletBalance ? walletBalance.toLocaleString() : "0"}
-            </p>
+        <div className="w-full md:w-auto flex items-center justify-between sm:justify-start gap-3 bg-slate-100 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <Wallet className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div>
+              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400">
+                Customer Wallet
+              </p>
+              <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                ₦{walletBalance ? walletBalance.toLocaleString() : "0"}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={handleOpenTopUpModal}
-            className="ml-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-500/20"
-          >
-            Fund Wallet
-          </button>
 
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleOpenTopUpModal}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-500/20"
+            >
+              Fund Wallet
+            </button>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
       {/* Network Provider Selector */}
       <section className="mb-8">
-        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
+        <h2 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
           1. Select Network
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           {(["MTN", "AIRTEL", "GLO", "9MOBILE"] as NetworkProvider[]).map(
             (network) => (
               <button
                 key={network}
                 onClick={() => setSelectedNetwork(network)}
-                className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
+                className={`p-3.5 sm:p-4 rounded-xl border flex items-center justify-between transition-all ${
                   selectedNetwork === network
-                    ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-white shadow-lg shadow-blue-500/10 font-bold"
+                    ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-white shadow-md shadow-blue-500/10 font-bold"
                     : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-slate-200 shadow-sm dark:shadow-none"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <Wifi
-                    className={`w-5 h-5 ${
-                      selectedNetwork === network
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-slate-400 dark:text-slate-500"
-                    }`}
-                  />
-                  <span className="font-bold">{network}</span>
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <NetworkLogo network={network} />
+                  <span className="font-bold text-sm sm:text-base">
+                    {network}
+                  </span>
                 </div>
                 {selectedNetwork === network && (
-                  <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                 )}
               </button>
             ),
@@ -179,10 +201,10 @@ export default function StorefrontPage({
 
       {/* Plan Selection Cards */}
       <section>
-        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
+        <h2 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
           2. Select Plan
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPlans.map((plan) => {
             const retailPrice = calculateRetailPrice(plan.basePrice);
 
@@ -199,11 +221,11 @@ export default function StorefrontPage({
                     </span>
                     <Smartphone className="w-5 h-5 text-slate-400 dark:text-slate-500" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                     {plan.name}
                   </h3>
                   <div className="mt-2 flex items-baseline gap-2">
-                    <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">
+                    <p className="text-xl sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400">
                       ₦{retailPrice.toLocaleString()}
                     </p>
                     {markup > 0 && (
