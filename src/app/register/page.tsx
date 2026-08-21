@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { registerReseller } from "@/lib/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   AlertCircle,
@@ -38,23 +38,70 @@ export default function RegisterPage() {
     setErrorMessage("");
     setIsLoading(true);
 
-    const result = await registerReseller(
-      {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        companyName: formData.companyName.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-      },
-      formData.adminToken.trim() || undefined,
-    );
+    try {
+      const supabase = createClient();
 
-    if (result.success) {
+      const email = formData.email.trim();
+      const firstName = formData.firstName.trim();
+      const lastName = formData.lastName.trim();
+      const companyName = formData.companyName.trim();
+
+      // 1. Sign up the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password: formData.password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            company_name: companyName,
+          },
+        },
+      });
+
+      if (authError) {
+        setErrorMessage(authError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      const userId = authData.user?.id;
+
+      if (userId) {
+        // 2. Generate a unique tenant slug and API key
+        const slug =
+          companyName
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "-")
+            .replace(/-+/g, "-") +
+          "-" +
+          Math.random().toString(36).substring(2, 6);
+
+        const apiKey =
+          "vtu_live_" +
+          Array.from(crypto.getRandomValues(new Uint8Array(24)))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+
+        // 3. Insert the record into your 'tenants' table so it appears in the admin directory
+        const { error: tenantError } = await supabase.from("tenants").insert({
+          id: userId,
+          name: companyName,
+          slug: slug,
+          api_key: apiKey,
+          owner_email: email,
+        });
+
+        if (tenantError) {
+          console.error("Failed to create tenant record:", tenantError.message);
+        }
+      }
+
+      // Success! Head straight to dashboard
       router.push("/dashboard");
-    } else {
-      setErrorMessage(
-        result.message || "Registration failed. Please try again",
-      );
+      router.refresh();
+    } catch (err: any) {
+      setErrorMessage(err.message || "Registration failed. Please try again.");
       setIsLoading(false);
     }
   };

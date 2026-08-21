@@ -1,9 +1,10 @@
 "use client";
+const supabase = createClient();
 
 import React, { useState, useEffect, use } from "react";
 import { useTenant } from "@/context/TenantContext";
 import { BasePlan, NetworkProvider } from "@/types";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 import { Smartphone, Wallet, ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { CheckoutModal, ModalMode } from "@/components/CheckoutModal";

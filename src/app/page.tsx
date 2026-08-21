@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 import {
   ArrowRight,
   ExternalLink,
@@ -40,6 +40,7 @@ export default function RootLandingPage() {
 
   // Fetch real live tenants from Supabase database
   useEffect(() => {
+    const supabase = createClient();
     async function fetchTenants() {
       const { data, error } = await supabase
         .from("tenants")

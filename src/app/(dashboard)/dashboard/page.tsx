@@ -4,7 +4,7 @@ import { DashboardNavbar } from "@/components/DashboardNavbar";
 import { StatsCard } from "@/components/StatsCard";
 import { useTenant } from "@/context/TenantContext";
 import { BasePlan, NetworkProvider } from "@/types";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
 import {
   CheckCircle2,
@@ -59,6 +59,7 @@ export default function ResellerDashboardPage() {
 
   // Fetch plans & markups directly from Supabase
   useEffect(() => {
+    const supabase = createClient();
     async function loadDashboardData() {
       setLoading(true);
 
@@ -170,27 +171,21 @@ export default function ResellerDashboardPage() {
   };
 
   const handleSaveMarkups = async () => {
-    if (tenant?.slug) {
-      // Save locally as quick-cache
-      localStorage.setItem(
-        `vtu_markups_${tenant.slug}`,
-        JSON.stringify(markups),
-      );
+    const supabase = createClient();
 
-      // Persist markup pricing matrix directly in Supabase
-      const upsertPayload = Object.entries(markups).map(
-        ([planId, retailPrice]) => ({
-          tenant_slug: tenant.slug,
-          plan_id: planId,
-          retail_price: retailPrice,
-          updated_at: new Date().toISOString(),
-        }),
-      );
+    // Persist markup pricing matrix directly in Supabase
+    const upsertPayload = Object.entries(markups).map(
+      ([planId, retailPrice]) => ({
+        tenant_slug: tenant?.slug,
+        plan_id: planId,
+        retail_price: retailPrice,
+        updated_at: new Date().toISOString(),
+      }),
+    );
 
-      await supabase.from("tenant_markups").upsert(upsertPayload, {
-        onConflict: "tenant_slug,plan_id",
-      });
-    }
+    await supabase.from("tenant_markups").upsert(upsertPayload, {
+      onConflict: "tenant_slug,plan_id",
+    });
 
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);

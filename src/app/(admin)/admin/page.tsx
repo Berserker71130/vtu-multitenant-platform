@@ -1,8 +1,9 @@
 "use client";
+const supabase = createClient();
 
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 import {
   Activity,
   AlertCircle,
@@ -148,7 +149,7 @@ export default function SuperAdminConsolePage() {
     try {
       const { error } = await supabase
         .from("tenants")
-        .update({ status: newStatus.toLowerCase() })
+        .update({ status: newStatus }) // Removed .toLowerCase() so it sends "ACTIVE" or "SUSPENDED"
         .eq("id", tenantId);
 
       if (error) {

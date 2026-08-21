@@ -1,9 +1,10 @@
 "use client";
+const supabase = createClient();
 
 import { useState } from "react";
 import { BasePlan, NetworkProvider } from "@/types";
 import { useTenant } from "@/context/TenantContext";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,

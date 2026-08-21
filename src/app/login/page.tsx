@@ -1,6 +1,6 @@
 "use client";
 
-import { loginReseller } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
@@ -30,17 +30,24 @@ export default function LoginPage() {
     setErrorMessage("");
     setIsLoading(true);
 
-    const result = await loginReseller({
-      email: formData.email.trim(),
-      password: formData.password,
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formData.email.trim(),
+        password: formData.password,
+      });
 
-    if (result.success) {
+      if (error) {
+        setErrorMessage(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // Hard refresh or router push to make sure middleware detects the new cookie session
       router.push("/dashboard");
-    } else {
-      setErrorMessage(
-        result.message || "Login failed. Please check your details.",
-      );
+      router.refresh();
+    } catch (err: any) {
+      setErrorMessage(err.message || "An unexpected error occurred.");
       setIsLoading(false);
     }
   };
