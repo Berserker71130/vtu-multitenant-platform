@@ -4,6 +4,7 @@ import { DashboardNavbar } from "@/components/DashboardNavbar";
 import { StatsCard } from "@/components/StatsCard";
 import { useTenant } from "@/context/TenantContext";
 import { BasePlan, NetworkProvider } from "@/types";
+import { supabase } from "@/lib/supabaseClient";
 import { motion } from "framer-motion";
 import {
   CheckCircle2,
@@ -48,94 +49,159 @@ const NetworkBadge = ({ network }: { network: NetworkProvider }) => {
   }
 };
 
-// Initial Base Plans From Master VTU Provider
-const INITIAL_BASE_PLANS: BasePlan[] = [
-  {
-    id: "bp-1",
-    network: "MTN",
-    type: "DATA",
-    name: "1.0 GB SME Data",
-    value: "1GB",
-    validity: "30 Days",
-    basePrice: 220,
-    isActive: true,
-  },
-  {
-    id: "bp-2",
-    network: "MTN",
-    type: "DATA",
-    name: "2.0 GB SME Data",
-    value: "2GB",
-    validity: "30 Days",
-    basePrice: 440,
-    isActive: true,
-  },
-  {
-    id: "bp-3",
-    network: "AIRTEL",
-    type: "DATA",
-    name: "1.5 GB Direct Data",
-    value: "1.5GB",
-    validity: "30 Days",
-    basePrice: 350,
-    isActive: true,
-  },
-  {
-    id: "bp-4",
-    network: "GLO",
-    type: "DATA",
-    name: "2.5 GB Corporate",
-    value: "2.5GB",
-    validity: "30 Days",
-    basePrice: 500,
-    isActive: true,
-  },
-];
-
 export default function ResellerDashboardPage() {
   const { tenant, walletBalance, transactions } = useTenant();
 
-  const [markups, setMarkups] = useState<Record<string, number>>({
-    "bp-1": 270,
-    "bp-2": 520,
-    "bp-3": 420,
-    "bp-4": 600,
-  });
-
+  const [basePlans, setBasePlans] = useState<BasePlan[]>([]);
+  const [markups, setMarkups] = useState<Record<string, number>>({});
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch plans & markups directly from Supabase
   useEffect(() => {
-    if (typeof window !== "undefined" && tenant?.slug) {
-      const savedMarkups = localStorage.getItem(`vtu_markups_${tenant.slug}`);
-      if (savedMarkups) {
-        setMarkups(JSON.parse(savedMarkups));
+    async function loadDashboardData() {
+      setLoading(true);
+
+      // 1. Fetch live plans from Supabase
+      const { data: planData, error: planError } = await supabase
+        .from("plans")
+        .select("*");
+
+      if (!planError && planData && planData.length > 0) {
+        const formattedPlans: BasePlan[] = planData.map((p) => ({
+          id: p.id,
+          network: p.network as NetworkProvider,
+          type: p.type || "DATA",
+          name: p.name,
+          value: p.value || p.name,
+          validity: p.validity || "30 Days",
+          basePrice: p.base_price,
+          isActive: p.is_active ?? true,
+        }));
+        setBasePlans(formattedPlans);
+
+        // Initialize default retail prices matching wholesale base
+        const initialMarkups: Record<string, number> = {};
+        formattedPlans.forEach((plan) => {
+          initialMarkups[plan.id] = plan.basePrice;
+        });
+
+        // 2. Load custom markups for active tenant if available in Supabase or local storage fallback
+        if (tenant?.slug) {
+          const { data: markupData } = await supabase
+            .from("tenant_markups")
+            .select("plan_id, retail_price")
+            .eq("tenant_slug", tenant.slug);
+
+          if (markupData && markupData.length > 0) {
+            markupData.forEach((item) => {
+              initialMarkups[item.plan_id] = item.retail_price;
+            });
+          } else {
+            const localSaved = localStorage.getItem(
+              `vtu_markups_${tenant.slug}`,
+            );
+            if (localSaved) {
+              Object.assign(initialMarkups, JSON.parse(localSaved));
+            }
+          }
+        }
+        setMarkups(initialMarkups);
+      } else {
+        // Fallback default base plans if table is currently unseeded
+        const fallbackPlans: BasePlan[] = [
+          {
+            id: "bp-1",
+            network: "MTN",
+            type: "DATA",
+            name: "1.0 GB SME Data",
+            value: "1GB",
+            validity: "30 Days",
+            basePrice: 220,
+            isActive: true,
+          },
+          {
+            id: "bp-2",
+            network: "MTN",
+            type: "DATA",
+            name: "2.0 GB SME Data",
+            value: "2GB",
+            validity: "30 Days",
+            basePrice: 440,
+            isActive: true,
+          },
+          {
+            id: "bp-3",
+            network: "AIRTEL",
+            type: "DATA",
+            name: "1.5 GB Direct Data",
+            value: "1.5GB",
+            validity: "30 Days",
+            basePrice: 350,
+            isActive: true,
+          },
+          {
+            id: "bp-4",
+            network: "GLO",
+            type: "DATA",
+            name: "2.5 GB Corporate",
+            value: "2.5GB",
+            validity: "30 Days",
+            basePrice: 500,
+            isActive: true,
+          },
+        ];
+        setBasePlans(fallbackPlans);
+        setMarkups({
+          "bp-1": 270,
+          "bp-2": 520,
+          "bp-3": 420,
+          "bp-4": 600,
+        });
       }
+      setLoading(false);
     }
+
+    loadDashboardData();
   }, [tenant?.slug]);
 
   const handlePriceChange = (planId: string, newPrice: number) => {
     setMarkups((prev) => ({ ...prev, [planId]: newPrice }));
   };
 
-  const handleSaveMarkups = () => {
-    if (typeof window !== "undefined" && tenant?.slug) {
+  const handleSaveMarkups = async () => {
+    if (tenant?.slug) {
+      // Save locally as quick-cache
       localStorage.setItem(
         `vtu_markups_${tenant.slug}`,
         JSON.stringify(markups),
       );
+
+      // Persist markup pricing matrix directly in Supabase
+      const upsertPayload = Object.entries(markups).map(
+        ([planId, retailPrice]) => ({
+          tenant_slug: tenant.slug,
+          plan_id: planId,
+          retail_price: retailPrice,
+          updated_at: new Date().toISOString(),
+        }),
+      );
+
+      await supabase.from("tenant_markups").upsert(upsertPayload, {
+        onConflict: "tenant_slug,plan_id",
+      });
     }
+
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
-  // Calculate live analytics from actual transactions context
+  // Calculate live analytics from actual Supabase transaction history
   const totalDebitSpend = transactions
     .filter((t) => t.type === "debit" && t.status === "success")
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalTxnCount = transactions.length;
-
-  // Active customers calculated dynamically from transaction history
   const totalActiveCustomers =
     transactions.length > 0 ? transactions.length : 0;
 
@@ -224,11 +290,16 @@ export default function ResellerDashboardPage() {
                 </p>
               </div>
             </div>
+            {loading && (
+              <span className="text-xs text-blue-500 font-semibold animate-pulse">
+                Syncing Supabase...
+              </span>
+            )}
           </div>
 
           {/* Mobile View: Card List */}
           <div className="block md:hidden divide-y divide-slate-200 dark:divide-slate-800/60">
-            {INITIAL_BASE_PLANS.map((plan) => {
+            {basePlans.map((plan) => {
               const currentRetail = markups[plan.id] ?? plan.basePrice;
               const profitMargin = currentRetail - plan.basePrice;
 
@@ -296,7 +367,7 @@ export default function ResellerDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-                {INITIAL_BASE_PLANS.map((plan) => {
+                {basePlans.map((plan) => {
                   const currentRetail = markups[plan.id] ?? plan.basePrice;
                   const profitMargin = currentRetail - plan.basePrice;
 

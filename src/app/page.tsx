@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import {
   ArrowRight,
   ExternalLink,
@@ -21,13 +22,36 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
+interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+}
+
 export default function RootLandingPage() {
   const router = useRouter();
   const [storeSlugInput, setStoreSlugInput] = useState("apex-telecom");
   const [dailySalesCount, setDailySalesCount] = useState(250);
+  const [activeTenants, setActiveTenants] = useState<Tenant[]>([]);
   const averageProfitPerSale = 60;
 
   const calculatedMonthlyProfit = dailySalesCount * averageProfitPerSale * 30;
+
+  // Fetch real live tenants from Supabase database
+  useEffect(() => {
+    async function fetchTenants() {
+      const { data, error } = await supabase
+        .from("tenants")
+        .select("id, name, slug, status")
+        .limit(3);
+
+      if (!error && data) {
+        setActiveTenants(data);
+      }
+    }
+    fetchTenants();
+  }, []);
 
   const handleLaunchStorePreview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -346,7 +370,7 @@ export default function RootLandingPage() {
           </Link>
 
           <Link
-            href="/login"
+            href="/dashboard"
             className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition-all flex items-center justify-between group shadow-sm dark:shadow-none"
           >
             <div className="flex items-center gap-3">

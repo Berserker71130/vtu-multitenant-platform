@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { BasePlan, NetworkProvider } from "@/types";
 import { useTenant } from "@/context/TenantContext";
+import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertCircle,
@@ -25,7 +26,6 @@ interface CheckoutModalProps {
   storeName: string;
 }
 
-// Helper component for network logos/badges inside modal
 const NetworkBadge = ({ network }: { network: NetworkProvider }) => {
   switch (network) {
     case "MTN":
@@ -64,35 +64,90 @@ export function CheckoutModal({
   selectedPlan,
   storeName,
 }: CheckoutModalProps) {
-  const { walletBalance, fundWallet, deductWallet } = useTenant();
+  const { tenant, walletBalance, fundWallet, deductWallet } = useTenant();
 
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("2000");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [txRef, setTxRef] = useState("");
 
   if (!isOpen) return null;
 
-  const handleProcessTransaction = (e: React.FormEvent) => {
+  const handleProcessTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
     setIsProcessing(true);
 
-    setTimeout(() => {
+    const generatedRef = `TXN-${Math.floor(100000 + Math.random() * 900000)}`;
+    setTxRef(generatedRef);
+
+    try {
       if (mode === "BUY_PLAN" && selectedPlan) {
         const cost = selectedPlan.basePrice;
-        const success = deductWallet(
-          cost,
-          `${selectedPlan.network} ${selectedPlan.name} -> ${phone}`,
-        );
 
-        if (!success) {
+        if (walletBalance < cost) {
           setIsProcessing(false);
           setErrorMessage(
             `Insufficient wallet balance (₦${walletBalance.toLocaleString()}). Please top up first.`,
           );
+
           return;
+        }
+
+        const txDescription = `${selectedPlan.network} ${selectedPlan.name} -> ${phone}`;
+
+        const localDeductSuccess = deductWallet(cost, txDescription);
+        if (!localDeductSuccess) {
+          setIsProcessing(false);
+          setErrorMessage("Failed to process local wallet deduction.");
+          return;
+        }
+
+        // Full audit log payload into Supabase
+        const { error: txError } = await supabase.from("transactions").insert({
+          reference: generatedRef,
+          tenant_id:
+            tenant?.id && tenant.id.includes("-") && tenant.id.length > 20
+              ? tenant.id
+              : null,
+          tenant_slug: tenant?.slug || storeName || "default-tenant",
+          type: "debit",
+          amount: cost,
+          description: txDescription,
+          phone_number: phone,
+          network: selectedPlan.network,
+          plan_name: selectedPlan.name,
+          status: "success",
+          created_at: new Date().toISOString(),
+        });
+
+        if (txError) {
+          console.error("Supabase Transaction Insert Error:", txError.message);
+          setIsProcessing(false);
+          setErrorMessage(`Database transaction failed: ${txError.message}`);
+          return;
+        }
+
+        // Atomic balance update on Supabase wallets table using clean .eq() filters
+        const newBalance = walletBalance - cost;
+        if (tenant?.id) {
+          await supabase
+            .from("wallets")
+            .update({
+              balance: newBalance,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("tenant_id", tenant.id);
+        } else if (tenant?.slug) {
+          await supabase
+            .from("wallets")
+            .update({
+              balance: newBalance,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("tenant_slug", tenant.slug);
         }
       } else if (mode === "TOP_UP") {
         const topUpAmount = Number(amount);
@@ -101,12 +156,59 @@ export function CheckoutModal({
           setErrorMessage("Please enter a valid top-up amount.");
           return;
         }
-        fundWallet(topUpAmount, `Wallet Top-Up via ${storeName}`);
+
+        const topUpDesc = `Wallet Top-Up via ${storeName}`;
+        fundWallet(topUpAmount, topUpDesc);
+
+        const { error: txError } = await supabase.from("transactions").insert({
+          reference: generatedRef,
+          tenant_id:
+            tenant?.id && tenant.id.includes("-") && tenant.id.length > 20
+              ? tenant.id
+              : null,
+          tenant_slug: tenant?.slug || storeName || "default-tenant",
+          type: "credit",
+          amount: topUpAmount,
+          description: topUpDesc,
+          phone_number: phone,
+          status: "success",
+          created_at: new Date().toISOString(),
+        });
+
+        if (txError) {
+          console.error("Supabase Top-Up Insert Error:", txError.message);
+          setIsProcessing(false);
+          setErrorMessage(`Database top-up failed: ${txError.message}`);
+          return;
+        }
+
+        const newBalance = walletBalance + topUpAmount;
+        if (tenant?.id) {
+          await supabase
+            .from("wallets")
+            .update({
+              balance: newBalance,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("tenant_id", tenant.id);
+        } else if (tenant?.slug) {
+          await supabase
+            .from("wallets")
+            .update({
+              balance: newBalance,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("tenant_slug", tenant.slug);
+        }
       }
 
       setIsProcessing(false);
       setIsSuccess(true);
-    }, 1000);
+    } catch (err: any) {
+      console.error("Transaction Error:", err);
+      setIsProcessing(false);
+      setErrorMessage(`Transaction failed: ${err.message}`);
+    }
   };
 
   const handleResetAndClose = () => {
@@ -126,7 +228,6 @@ export function CheckoutModal({
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           className="relative w-full max-w-md rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xl overflow-hidden transition-colors max-h-[90vh] overflow-y-auto"
         >
-          {/* Close Button */}
           <button
             onClick={handleResetAndClose}
             className="absolute top-4 right-4 sm:top-5 sm:right-5 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all"
@@ -135,7 +236,6 @@ export function CheckoutModal({
           </button>
 
           {isSuccess ? (
-            /* Success state */
             <div className="text-center py-4 sm:py-6">
               <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10" />
@@ -159,7 +259,7 @@ export function CheckoutModal({
                 <div className="flex justify-between text-slate-600 dark:text-slate-400">
                   <span>Reference ID:</span>
                   <span className="font-mono text-blue-600 dark:text-blue-400">
-                    TXN-{Math.floor(100000 + Math.random() * 900000)}
+                    {txRef}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600 dark:text-slate-400">
@@ -178,7 +278,6 @@ export function CheckoutModal({
               </button>
             </div>
           ) : (
-            /* Active Form State */
             <div>
               <div className="flex items-center gap-3 mb-5 sm:mb-6">
                 <div className="p-2.5 sm:p-3 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">

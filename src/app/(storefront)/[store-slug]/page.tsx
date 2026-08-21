@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import { useTenant } from "@/context/TenantContext";
 import { BasePlan, NetworkProvider } from "@/types";
+import { supabase } from "@/lib/supabaseClient";
 import { Smartphone, Wallet, ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { CheckoutModal, ModalMode } from "@/components/CheckoutModal";
@@ -40,49 +41,6 @@ const NetworkLogo = ({ network }: { network: NetworkProvider }) => {
   }
 };
 
-const MOCK_PLANS: BasePlan[] = [
-  {
-    id: "1",
-    network: "MTN",
-    type: "DATA",
-    name: "1.0 GB SME Data",
-    value: "1GB",
-    validity: "30 Days",
-    basePrice: 220,
-    isActive: true,
-  },
-  {
-    id: "2",
-    network: "MTN",
-    type: "DATA",
-    name: "2.0 GB SME Data",
-    value: "2GB",
-    validity: "30 Days",
-    basePrice: 440,
-    isActive: true,
-  },
-  {
-    id: "3",
-    network: "AIRTEL",
-    type: "DATA",
-    name: "1.5 GB Direct Data",
-    value: "1.5GB",
-    validity: "30 Days",
-    basePrice: 350,
-    isActive: true,
-  },
-  {
-    id: "4",
-    network: "GLO",
-    type: "DATA",
-    name: "2.5 GB Corporate",
-    value: "2.5GB",
-    validity: "30 Days",
-    basePrice: 500,
-    isActive: true,
-  },
-];
-
 export default function StorefrontPage({
   params,
 }: {
@@ -95,24 +53,132 @@ export default function StorefrontPage({
   const [selectedNetwork, setSelectedNetwork] =
     useState<NetworkProvider>("MTN");
 
+  const [plans, setPlans] = useState<BasePlan[]>([]);
+  const [retailPrices, setRetailPrices] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>("BUY_PLAN");
   const [activePlan, setActivePlan] = useState<BasePlan | null>(null);
 
-  const markup = tenant?.pricingMarkup ?? 5;
+  // Fetch live plans and store-specific retail pricing from Supabase
+  useEffect(() => {
+    async function loadStorefrontData() {
+      setLoading(true);
 
-  const calculateRetailPrice = (basePrice: number) => {
-    return Math.round(basePrice * (1 + markup / 100));
-  };
+      // 1. Fetch available base plans from Supabase
+      const { data: planData, error: planError } = await supabase
+        .from("plans")
+        .select("*");
 
-  const filteredPlans = MOCK_PLANS.filter(
-    (plan) => plan.network === selectedNetwork,
+      if (!planError && planData && planData.length > 0) {
+        const formattedPlans: BasePlan[] = planData.map((p) => ({
+          id: p.id,
+          network: p.network as NetworkProvider,
+          type: p.type || "DATA",
+          name: p.name,
+          value: p.value || p.name,
+          validity: p.validity || "30 Days",
+          basePrice: p.base_price,
+          isActive: p.is_active ?? true,
+        }));
+        setPlans(formattedPlans);
+
+        const priceMap: Record<string, number> = {};
+        formattedPlans.forEach((plan) => {
+          priceMap[plan.id] = plan.basePrice;
+        });
+
+        // 2. Load custom retail markups configured for this specific store slug
+        const activeSlug = storeSlug || tenant?.slug;
+        if (activeSlug) {
+          const { data: markupData } = await supabase
+            .from("tenant_markups")
+            .select("plan_id, retail_price")
+            .eq("tenant_slug", activeSlug);
+
+          if (markupData && markupData.length > 0) {
+            markupData.forEach((item) => {
+              priceMap[item.plan_id] = item.retail_price;
+            });
+          } else {
+            // LocalStorage fallback cache
+            const localSaved = localStorage.getItem(
+              `vtu_markups_${activeSlug}`,
+            );
+            if (localSaved) {
+              Object.assign(priceMap, JSON.parse(localSaved));
+            }
+          }
+        }
+        setRetailPrices(priceMap);
+      } else {
+        // Fallback static plans if Supabase table is unseeded
+        const fallbackPlans: BasePlan[] = [
+          {
+            id: "1",
+            network: "MTN",
+            type: "DATA",
+            name: "1.0 GB SME Data",
+            value: "1GB",
+            validity: "30 Days",
+            basePrice: 220,
+            isActive: true,
+          },
+          {
+            id: "2",
+            network: "MTN",
+            type: "DATA",
+            name: "2.0 GB SME Data",
+            value: "2GB",
+            validity: "30 Days",
+            basePrice: 440,
+            isActive: true,
+          },
+          {
+            id: "3",
+            network: "AIRTEL",
+            type: "DATA",
+            name: "1.5 GB Direct Data",
+            value: "1.5GB",
+            validity: "30 Days",
+            basePrice: 350,
+            isActive: true,
+          },
+          {
+            id: "4",
+            network: "GLO",
+            type: "DATA",
+            name: "2.5 GB Corporate",
+            value: "2.5GB",
+            validity: "30 Days",
+            basePrice: 500,
+            isActive: true,
+          },
+        ];
+        setPlans(fallbackPlans);
+        setRetailPrices({
+          "1": 270,
+          "2": 520,
+          "3": 420,
+          "4": 600,
+        });
+      }
+      setLoading(false);
+    }
+
+    loadStorefrontData();
+  }, [storeSlug, tenant?.slug]);
+
+  const filteredPlans = plans.filter(
+    (plan) => plan.network === selectedNetwork && plan.isActive,
   );
 
   const handleOpenBuyModal = (plan: BasePlan) => {
+    const finalPrice = retailPrices[plan.id] ?? plan.basePrice;
     const planWithRetailPrice: BasePlan = {
       ...plan,
-      basePrice: calculateRetailPrice(plan.basePrice),
+      basePrice: finalPrice,
     };
     setActivePlan(planWithRetailPrice);
     setModalMode("BUY_PLAN");
@@ -169,9 +235,16 @@ export default function StorefrontPage({
 
       {/* Network Provider Selector */}
       <section className="mb-6 sm:mb-8">
-        <h2 className="text-sm sm:text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3 sm:mb-4">
-          1. Select Network
-        </h2>
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <h2 className="text-sm sm:text-lg font-semibold text-slate-800 dark:text-slate-200">
+            1. Select Network
+          </h2>
+          {loading && (
+            <span className="text-xs text-blue-500 font-semibold animate-pulse">
+              Syncing Store Pricing...
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
           {(["MTN", "AIRTEL", "GLO", "9MOBILE"] as NetworkProvider[]).map(
             (network) => (
@@ -199,14 +272,14 @@ export default function StorefrontPage({
         </div>
       </section>
 
-      {/* Plan Selection Cards (2-Column Mobile Grid) */}
+      {/* Plan Selection Cards */}
       <section>
         <h2 className="text-sm sm:text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3 sm:mb-4">
           2. Select Plan
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
           {filteredPlans.map((plan) => {
-            const retailPrice = calculateRetailPrice(plan.basePrice);
+            const retailPrice = retailPrices[plan.id] ?? plan.basePrice;
 
             return (
               <motion.div
@@ -228,11 +301,6 @@ export default function StorefrontPage({
                     <p className="text-sm sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400">
                       ₦{retailPrice.toLocaleString()}
                     </p>
-                    {markup > 0 && (
-                      <span className="text-[10px] sm:text-xs text-slate-400 line-through">
-                        ₦{Math.round(retailPrice * 1.05).toLocaleString()}
-                      </span>
-                    )}
                   </div>
                 </div>
 
