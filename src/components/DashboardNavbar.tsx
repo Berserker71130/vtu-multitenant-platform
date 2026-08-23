@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bell, Plus, UserCheck, Wallet } from "lucide-react";
+import { Bell, Plus, UserCheck, Wallet, LogOut } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { CheckoutModal } from "./CheckoutModal";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 interface NavbarProps {
   storeName: string;
@@ -12,6 +14,21 @@ interface NavbarProps {
 
 export function DashboardNavbar({ storeName, walletBalance }: NavbarProps) {
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await supabase.auth.signOut();
+      router.refresh();
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Error logging out:", error);
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <>
@@ -72,9 +89,23 @@ export function DashboardNavbar({ storeName, walletBalance }: NavbarProps) {
             <Bell className="w-4 h-4" />
           </button>
 
+          {/* User Icon Badge */}
           <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0">
             <UserCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            title="Log out"
+            className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-xs transition-all shrink-0 disabled:opacity-50"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden md:inline">
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </span>
+          </button>
         </div>
       </header>
 

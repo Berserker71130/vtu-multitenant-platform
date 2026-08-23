@@ -30,20 +30,27 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  // Refresh session if expired
+  // IMPORTANT: Avoid security issues by using getUser() instead of getSession()
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
 
-  // Protect dashboard and admin routes: redirect to login if not authenticated
+  // If the user is not signed in and trying to access the dashboard or admin, protect it!
   if (
-    (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) &&
-    !user
+    !user &&
+    (pathname.startsWith("/dashboard") || pathname.startsWith("/admin"))
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  // If the user IS signed in and trying to go back to login/signup, kick them to dashboard
+  if (user && (pathname === "/login" || pathname === "/signup")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
@@ -59,6 +66,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder files (images, etc)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.\\.(?:svg|png|jpg|jpeg|gif|webp)$).)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
